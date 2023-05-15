@@ -4,6 +4,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import router from './routes';
 import globalErrorHandler from './middlewares/global-error-handler';
+import './auth/auth';
 
 const app = express();
 

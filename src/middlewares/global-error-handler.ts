@@ -7,7 +7,7 @@ export default function globalErrorHandler(
   res: Response,
   next: NextFunction
 ) {
-  console.error(err.stack);
   if (err instanceof z.ZodError) return res.status(400).json(err.issues);
+  console.error(err.stack);
   res.status(500).send('Server error');
 }
