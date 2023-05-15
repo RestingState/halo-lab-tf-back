@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
+import { User } from '@prisma/client';
 
 class AuthController {
   async singup(req: Request, res: Response, next: NextFunction) {
@@ -26,7 +27,9 @@ class AuthController {
         data: { username, password },
       });
 
-      res.json(exclude(user, ['password']));
+      const token = generateJwtToken(user);
+
+      res.json({ user: exclude(user, ['password']), token });
     } catch (error) {
       next(error);
     }
@@ -57,14 +60,21 @@ class AuthController {
           .json({ message: 'Incorrect username or password' });
       }
 
-      const body = { id: user.id, username: user.username };
-      const token = jwt.sign({ user: body }, process.env.SECRET_KEY as string);
+      const token = generateJwtToken(user);
 
-      return res.json({ token });
+      return res.json({ user: exclude(user, ['password']), token });
     } catch (error) {
       next(error);
     }
   }
+}
+
+function generateJwtToken(user: User) {
+  const body = { id: user.id, username: user.username };
+  const token = jwt.sign({ user: body }, process.env.SECRET_KEY as string, {
+    expiresIn: '24h',
+  });
+  return token;
 }
 
 function exclude<User, Key extends keyof User>(
