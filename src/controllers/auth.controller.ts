@@ -1,9 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { z } from 'zod';
-import bcrypt from 'bcrypt';
-import { User } from '@prisma/client';
+import authService from '../services/auth.service';
 
 class AuthController {
   async singup(req: Request, res: Response, next: NextFunction) {
@@ -23,11 +21,7 @@ class AuthController {
           .json({ message: 'User with such username already exists' });
       }
 
-      const user = await prisma.user.create({
-        data: { username, password },
-      });
-
-      const token = generateJwtToken(user);
+      const { user, token } = await authService.singup({ username, password });
 
       res.json({ user: exclude(user, ['password']), token });
     } catch (error) {
@@ -52,7 +46,7 @@ class AuthController {
           .json({ message: 'Incorrect username or password' });
       }
 
-      const validate = await bcrypt.compare(password, user.password);
+      const validate = await authService.validatePassword({ user, password });
 
       if (!validate) {
         return res
@@ -60,21 +54,13 @@ class AuthController {
           .json({ message: 'Incorrect username or password' });
       }
 
-      const token = generateJwtToken(user);
+      const token = await authService.login(user);
 
       return res.json({ user: exclude(user, ['password']), token });
     } catch (error) {
       next(error);
     }
   }
-}
-
-function generateJwtToken(user: User) {
-  const body = { id: user.id, username: user.username };
-  const token = jwt.sign({ user: body }, process.env.SECRET_KEY as string, {
-    expiresIn: '24h',
-  });
-  return token;
 }
 
 function exclude<User, Key extends keyof User>(
