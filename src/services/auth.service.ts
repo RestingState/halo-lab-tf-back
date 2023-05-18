@@ -24,12 +24,25 @@ class AuthService {
   }
 }
 
+type JwtPayload = {
+  user: {
+    id: number;
+    username: string;
+  };
+};
+
 function generateJwtToken(user: User) {
-  const body = { id: user.id, username: user.username };
-  const token = jwt.sign({ user: body }, process.env.SECRET_KEY as string, {
+  const payload: JwtPayload = {
+    user: { id: user.id, username: user.username },
+  };
+  const token = jwt.sign(payload, process.env.SECRET_KEY as string, {
     expiresIn: '24h',
   });
   return token;
+}
+
+export function verifyJwtToken(token: string) {
+  return jwt.verify(token, process.env.SECRET_KEY as string) as JwtPayload;
 }
 
 export default new AuthService();
