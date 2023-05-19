@@ -8,7 +8,112 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  username String @db.VarChar(30)
-  password String
+  id           Int            @id @default(autoincrement())
+  username     String         @db.VarChar(30)
+  password     String
+  games        GamesOnUsers[]
+  createdGames Game[]         @relation("game_creator")
+  winnedGames  Game[]         @relation("game_winner")
+  turns        Turn[]
+  chatMessages ChatMessage[]
+}
+
+model Game {
+  id        Int            @id @default(autoincrement())
+  users     GamesOnUsers[]
+  board     Board          @relation(fields: [boardId], references: [id])
+  boardId   Int
+  creator   User           @relation(fields: [creatorId], references: [id], name: "game_creator")
+  creatorId Int
+  winner    User           @relation(fields: [winnerId], references: [id], name: "game_winner")
+  winnerId  Int
+  status    GameStatus
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  turns     Turn[]
+  Chat      Chat?
+}
+
+enum GameStatus {
+  pending
+  in_process
+  finished
+}
+
+model GamesOnUsers {
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+  game   Game @relation(fields: [gameId], references: [id])
+  gameId Int
+
+  @@id([userId, gameId])
+}
+
+model BoardCell {
+  id            Int                  @id @default(autoincrement())
+  x             Int
+  y             Int
+  value         BoardCellValue
+  boards        BoardsOnBoardCells[]
+  boardsForExit Board[]
+  gameCells     GameCell[]
+}
+
+enum BoardCellValue {
+  w
+  p
+}
+
+model Board {
+  id              Int                  @id @default(autoincrement())
+  games           Game[]
+  exitBoardCell   BoardCell            @relation(fields: [exitBoardCellId], references: [id])
+  exitBoardCellId Int
+  boardCells      BoardsOnBoardCells[]
+}
+
+model BoardsOnBoardCells {
+  board       Board     @relation(fields: [boardId], references: [id])
+  boardId     Int
+  boardCell   BoardCell @relation(fields: [boardCellId], references: [id])
+  boardCellId Int
+
+  @@id([boardId, boardCellId])
+}
+
+model GameCell {
+  id          Int       @id @default(autoincrement())
+  boardCell   BoardCell @relation(fields: [boardCellId], references: [id])
+  boardCellId Int
+  visible     Boolean
+  turns       Turn[]
+}
+
+model Turn {
+  id           Int      @id @default(autoincrement())
+  playerTurn   Int
+  gameTurn     Int
+  player       User     @relation(fields: [playerId], references: [id])
+  playerId     Int
+  game         Game     @relation(fields: [gameId], references: [id])
+  gameId       Int
+  playerCell   GameCell @relation(fields: [playerCellId], references: [id])
+  playerCellId Int
+}
+
+model Chat {
+  id           Int           @id @default(autoincrement())
+  game         Game          @relation(fields: [gameId], references: [id])
+  gameId       Int           @unique
+  chatMessages ChatMessage[]
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  text      String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  chatId    Int
+  createdAt DateTime @default(now())
 }
