@@ -80,6 +80,20 @@ export default function gameHandler(io: Server, socket: Socket) {
     }
   });
 
+  socket.on('joinGameRoom', async (data, cb) => {
+    try {
+      const { gameId } = z.object({ gameId: z.number().int() }).parse(data);
+
+      const gameExists = await gameService.gameWithIdExists(gameId);
+      if (!gameExists)
+        return cb({ error_message: "Game with such gameId doesn't exists" });
+
+      socket.join(gameId.toString());
+    } catch (error) {
+      cb({ error_message: 'Server error' });
+    }
+  });
+
   socket.on('move', async (data, cb) => {
     try {
       const { userId, gameId, direction } = z
@@ -228,6 +242,44 @@ export default function gameHandler(io: Server, socket: Socket) {
 
       await gameService.finishGame({ winnerId: winner.id, gameId });
       io.to(gameId.toString()).emit('gameFinished');
+    } catch (error) {
+      cb({ error_message: 'Server error' });
+    }
+  });
+
+  socket.on('sendMessage', async (data, cb) => {
+    try {
+      const { userId, gameId, text } = z
+        .object({
+          userId: z.number().int(),
+          gameId: z.number().int(),
+          text: z.string(),
+        })
+        .parse(data);
+
+      const userExists = await userService.userWithIdExists(userId);
+      if (!userExists)
+        return cb({ error_message: "User with such userId doesn't exists" });
+
+      const gameExists = await gameService.gameWithIdExists(gameId);
+      if (!gameExists)
+        return cb({ error_message: "Game with such gameId doesn't exists" });
+
+      const message = await prisma.chatMessage.create({
+        data: {
+          text,
+          chat: { connect: { gameId } },
+          user: { connect: { id: userId } },
+        },
+        select: {
+          id: true,
+          text: true,
+          user: { select: { id: true, username: true } },
+          createdAt: true,
+        },
+      });
+
+      io.to(gameId.toString()).emit('messageReceived', message);
     } catch (error) {
       cb({ error_message: 'Server error' });
     }

@@ -115,6 +115,33 @@ class GameController {
       next(error);
     }
   }
+
+  async getChatMessages(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { gameId } = z
+        .object({
+          gameId: z.coerce.number().int(),
+        })
+        .parse({
+          gameId: req.params.id,
+        });
+
+      const chatMessages = await prisma.chatMessage.findMany({
+        where: { chat: { gameId } },
+        select: {
+          id: true,
+          text: true,
+          user: { select: { id: true, username: true } },
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      res.json(chatMessages);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new GameController();

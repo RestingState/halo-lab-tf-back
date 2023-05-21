@@ -119,7 +119,12 @@ class GameService {
   }
 
   async getGameUserIsIn(userId: number) {
-    return prisma.game.findFirst({ where: { users: { some: { userId } } } });
+    return prisma.game.findFirst({
+      where: {
+        users: { some: { userId } },
+        status: { in: ['in_process', 'pending'] },
+      },
+    });
   }
 
   async getGameBoard(
