@@ -71,6 +71,29 @@ class GameService {
     });
   }
 
+  async finishGame({ winnerId, gameId }: { winnerId: number; gameId: number }) {
+    const game = await prisma.game.update({
+      where: { id: gameId },
+      data: { status: 'finished', winner: { connect: { id: winnerId } } },
+      include: { users: { include: { user: true } } },
+    });
+
+    for (const user of game.users) {
+      const turn = await this.getPlayerCurrentTurn(gameId, user.userId);
+      if (!turn) throw new Error("Cannot find other player's turn");
+
+      await prisma.turn.update({
+        where: { id: turn.id },
+        data: { finished: true },
+      });
+
+      await prisma.turnsOnBoardCells.updateMany({
+        where: { turnId: turn.id },
+        data: { visible: true },
+      });
+    }
+  }
+
   async gameWithIdExists(gameId: number) {
     return Boolean(
       await prisma.game.findFirst({

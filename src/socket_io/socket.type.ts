@@ -47,6 +47,15 @@ export interface ClientToServerEvents {
         | 'Server error';
     }) => void
   ) => void;
+  giveUp: (
+    data: { userId: number; gameId: number },
+    cb: (res: {
+      error_message:
+        | "User with such userId doesn't exists"
+        | "Game with such gameId doesn't exists"
+        | 'Server error';
+    }) => void
+  ) => void;
 }
 
 export interface InterServerEvents {}

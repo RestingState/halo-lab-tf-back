@@ -184,7 +184,7 @@ export default function gameHandler(io: Server, socket: Socket) {
 
       const game = await prisma.game.findFirst({
         where: { id: gameId },
-        include: { board: true, users: { include: { user: true } } },
+        include: { board: true },
       });
       if (!game) throw new Error('Game was not found');
 
@@ -192,34 +192,42 @@ export default function gameHandler(io: Server, socket: Socket) {
         nextTurn.playerX === game.board.exitX &&
         nextTurn.playerY === game.board.exitY
       ) {
-        await prisma.game.update({
-          where: { id: gameId },
-          data: { status: 'finished', winner: { connect: { id: userId } } },
-        });
-
-        for (const user of game.users) {
-          const turn = await gameService.getPlayerCurrentTurn(
-            gameId,
-            user.userId
-          );
-          if (!turn) throw new Error("Cannot find other player's turn");
-
-          await prisma.turn.update({
-            where: { id: turn.id },
-            data: { finished: true },
-          });
-
-          await prisma.turnsOnBoardCells.updateMany({
-            where: { turnId: turn.id },
-            data: { visible: true },
-          });
-        }
+        await gameService.finishGame({ winnerId: userId, gameId });
 
         io.to(gameId.toString()).emit('gameFinished');
         return;
       }
 
       io.to(gameId.toString()).emit('turnChange');
+    } catch (error) {
+      cb({ error_message: 'Server error' });
+    }
+  });
+
+  socket.on('giveUp', async (data, cb) => {
+    try {
+      const { userId, gameId } = z
+        .object({
+          userId: z.number().int(),
+          gameId: z.number().int(),
+        })
+        .parse(data);
+
+      const userExists = await userService.userWithIdExists(userId);
+      if (!userExists)
+        return cb({ error_message: "User with such userId doesn't exists" });
+
+      const gameExists = await gameService.gameWithIdExists(gameId);
+      if (!gameExists)
+        return cb({ error_message: "Game with such gameId doesn't exists" });
+
+      const winner = await prisma.user.findFirst({
+        where: { games: { some: { gameId, NOT: { userId } } } },
+      });
+      if (!winner) throw new Error('Winner is not found');
+
+      await gameService.finishGame({ winnerId: winner.id, gameId });
+      io.to(gameId.toString()).emit('gameFinished');
     } catch (error) {
       cb({ error_message: 'Server error' });
     }
