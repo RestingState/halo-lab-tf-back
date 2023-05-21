@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { z } from 'zod';
 import authService from '../services/auth.service';
+import { exclude } from '../utils';
 
 class AuthController {
   async singup(req: Request, res: Response, next: NextFunction) {
@@ -61,16 +62,6 @@ class AuthController {
       next(error);
     }
   }
-}
-
-function exclude<User, Key extends keyof User>(
-  user: User,
-  keys: Key[]
-): Omit<User, Key> {
-  for (let key of keys) {
-    delete user[key];
-  }
-  return user;
 }
 
 export default new AuthController();

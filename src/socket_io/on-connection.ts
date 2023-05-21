@@ -1,11 +1,13 @@
-import userHandlers from './handlers/user.handlers';
+import gameHandler from './handlers/game.handler';
 import { Server, Socket } from './socket.type';
+import gameService from '../services/game.service';
 
-export default function onConnection(io: Server, socket: Socket) {
-  const { roomId } = socket.handshake.query;
-  socket.data.roomId = roomId as string;
+export default async function onConnection(io: Server, socket: Socket) {
+  const userId = socket.data.userId as number;
+  const game = await gameService.getGameUserIsIn(userId);
+  if (game) {
+    socket.join(game.id.toString());
+  }
 
-  socket.join(socket.data.roomId);
-
-  userHandlers(io, socket);
+  gameHandler(io, socket);
 }

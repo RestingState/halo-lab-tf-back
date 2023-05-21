@@ -20,18 +20,18 @@ model User {
 
 model Game {
   id        Int            @id @default(autoincrement())
-  users     GamesOnUsers[]
   board     Board          @relation(fields: [boardId], references: [id])
   boardId   Int
   creator   User           @relation(fields: [creatorId], references: [id], name: "game_creator")
   creatorId Int
-  winner    User           @relation(fields: [winnerId], references: [id], name: "game_winner")
-  winnerId  Int
-  status    GameStatus
+  winner    User?          @relation(fields: [winnerId], references: [id], name: "game_winner")
+  winnerId  Int?
+  status    GameStatus     @default(pending)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+  users     GamesOnUsers[]
   turns     Turn[]
-  Chat      Chat?
+  chat      Chat?
 }
 
 enum GameStatus {
@@ -43,20 +43,19 @@ enum GameStatus {
 model GamesOnUsers {
   user   User @relation(fields: [userId], references: [id])
   userId Int
-  game   Game @relation(fields: [gameId], references: [id])
+  game   Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
   gameId Int
 
   @@id([userId, gameId])
 }
 
 model BoardCell {
-  id            Int                  @id @default(autoincrement())
-  x             Int
-  y             Int
-  value         BoardCellValue
-  boards        BoardsOnBoardCells[]
-  boardsForExit Board[]
-  gameCells     GameCell[]
+  id     Int                  @id @default(autoincrement())
+  x      Int
+  y      Int
+  value  BoardCellValue
+  boards BoardsOnBoardCells[]
+  turns  TurnsOnBoardCells[]
 }
 
 enum BoardCellValue {
@@ -65,45 +64,50 @@ enum BoardCellValue {
 }
 
 model Board {
-  id              Int                  @id @default(autoincrement())
-  games           Game[]
-  exitBoardCell   BoardCell            @relation(fields: [exitBoardCellId], references: [id])
-  exitBoardCellId Int
-  boardCells      BoardsOnBoardCells[]
+  id         Int                  @id @default(autoincrement())
+  games      Game[]
+  exitX      Int
+  exitY      Int
+  boardCells BoardsOnBoardCells[]
 }
 
 model BoardsOnBoardCells {
-  board       Board     @relation(fields: [boardId], references: [id])
-  boardId     Int
-  boardCell   BoardCell @relation(fields: [boardCellId], references: [id])
-  boardCellId Int
+  board                          Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId                        Int
+  boardCell                      BoardCell @relation(fields: [boardCellId], references: [id], onDelete: Cascade)
+  boardCellId                    Int
+  suitableForUserInitialPosition Boolean   @default(false)
 
   @@id([boardId, boardCellId])
 }
 
-model GameCell {
-  id          Int       @id @default(autoincrement())
-  boardCell   BoardCell @relation(fields: [boardCellId], references: [id])
-  boardCellId Int
-  visible     Boolean
-  turns       Turn[]
+model Turn {
+  id         Int                 @id @default(autoincrement())
+  playerTurn Int
+  gameTurn   Int
+  player     User                @relation(fields: [playerId], references: [id])
+  playerId   Int
+  game       Game                @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId     Int
+  playerX    Int
+  playerY    Int
+  finished   Boolean             @default(false)
+  boardCells TurnsOnBoardCells[]
 }
 
-model Turn {
-  id           Int      @id @default(autoincrement())
-  playerTurn   Int
-  gameTurn     Int
-  player       User     @relation(fields: [playerId], references: [id])
-  playerId     Int
-  game         Game     @relation(fields: [gameId], references: [id])
-  gameId       Int
-  playerCell   GameCell @relation(fields: [playerCellId], references: [id])
-  playerCellId Int
+model TurnsOnBoardCells {
+  turn        Turn      @relation(fields: [turnId], references: [id], onDelete: Cascade)
+  turnId      Int
+  boardCell   BoardCell @relation(fields: [boardCellId], references: [id])
+  boardCellId Int
+  visible     Boolean   @default(false)
+
+  @@id([turnId, boardCellId])
 }
 
 model Chat {
   id           Int           @id @default(autoincrement())
-  game         Game          @relation(fields: [gameId], references: [id])
+  game         Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
   gameId       Int           @unique
   chatMessages ChatMessage[]
 }

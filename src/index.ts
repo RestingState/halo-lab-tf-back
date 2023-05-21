@@ -27,6 +27,15 @@ const io = new Server(server, {
 });
 
 io.use((socket, next) => {
+  // TODO: remove
+  const headerToken = socket.handshake.headers.token;
+  if (headerToken) {
+    const payload = verifyJwtToken(headerToken as string);
+    socket.data.userId = payload.user.id;
+    next();
+    return;
+  }
+
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error('Unauthorized'));
 
@@ -40,6 +49,6 @@ io.on('connection', socket => {
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
