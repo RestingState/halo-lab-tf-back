@@ -38,6 +38,7 @@ enum GameStatus {
   pending
   in_process
   finished
+  canceled
 }
 
 model GamesOnUsers {

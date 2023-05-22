@@ -5,6 +5,7 @@ import { Direction } from '../type';
 export interface ServerToClientEvents {
   gameCreated: (game: Game) => void;
   gameStarted: (gameId: number) => void;
+  gameCanceled: () => void;
   turnChange: () => void;
   gameFinished: () => void;
   messageReceived: (message: {
@@ -36,6 +37,7 @@ export interface ClientToServerEvents {
       error_message:
         | "User with such userId doesn't exists"
         | "Game with such gameId doesn't exists"
+        | 'Game is not in pending state'
         | 'User already plays another game or waits for another game to start'
         | 'User already waits for this game to start'
         | 'User already plays in this game'
@@ -46,6 +48,15 @@ export interface ClientToServerEvents {
     data: { gameId: number },
     cb: (res: {
       error_message: "Game with such gameId doesn't exists" | 'Server error';
+    }) => void
+  ) => void;
+  cancelGame: (
+    data: { gameId: number },
+    cb: (res: {
+      error_message:
+        | "Game with such gameId doesn't exists"
+        | 'You can only cancel game that is in pending state'
+        | 'Server error';
     }) => void
   ) => void;
   move: (

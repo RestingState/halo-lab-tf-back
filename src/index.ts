@@ -27,21 +27,25 @@ const io = new Server(server, {
 });
 
 io.use((socket, next) => {
-  // TODO: remove
-  const headerToken = socket.handshake.headers.token;
-  if (headerToken) {
-    const payload = verifyJwtToken(headerToken as string);
+  try {
+    // TODO: remove
+    const headerToken = socket.handshake.headers.token;
+    if (headerToken) {
+      const payload = verifyJwtToken(headerToken as string);
+      socket.data.userId = payload.user.id;
+      next();
+      return;
+    }
+
+    const token = socket.handshake.auth.token;
+    if (!token) return next(new Error('Unauthorized'));
+
+    const payload = verifyJwtToken(token);
     socket.data.userId = payload.user.id;
     next();
-    return;
+  } catch (error) {
+    next(new Error('Unauthorized'));
   }
-
-  const token = socket.handshake.auth.token;
-  if (!token) return next(new Error('Unauthorized'));
-
-  const payload = verifyJwtToken(token);
-  socket.data.userId = payload.user.id;
-  next();
 });
 
 io.on('connection', socket => {

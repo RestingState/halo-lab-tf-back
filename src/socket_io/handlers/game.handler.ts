@@ -49,17 +49,21 @@ export default function gameHandler(io: Server, socket: Socket) {
         where: { id: gameId },
         include: { users: true },
       });
+      if (!game) throw new Error('Game was not found');
 
-      if (game) {
-        const isParticipant = game.users.find(u => u.userId === userId);
-        if (isParticipant) {
-          if (game.status === 'pending') {
-            return cb({
-              error_message: 'User already waits for this game to start',
-            });
-          } else if (game.status === 'in_process') {
-            return cb({ error_message: 'User already plays in this game' });
-          }
+      if (game.status !== 'pending')
+        return cb({
+          error_message: 'Game is not in pending state',
+        });
+
+      const isParticipant = game.users.find(u => u.userId === userId);
+      if (isParticipant) {
+        if (game.status === 'pending') {
+          return cb({
+            error_message: 'User already waits for this game to start',
+          });
+        } else if (game.status === 'in_process') {
+          return cb({ error_message: 'User already plays in this game' });
         }
       }
 
@@ -89,6 +93,30 @@ export default function gameHandler(io: Server, socket: Socket) {
         return cb({ error_message: "Game with such gameId doesn't exists" });
 
       socket.join(gameId.toString());
+    } catch (error) {
+      cb({ error_message: 'Server error' });
+    }
+  });
+
+  socket.on('cancelGame', async (data, cb) => {
+    try {
+      const { gameId } = z.object({ gameId: z.number().int() }).parse(data);
+
+      const game = await prisma.game.findFirst({ where: { id: gameId } });
+      if (!game)
+        return cb({ error_message: "Game with such gameId doesn't exists" });
+
+      if (game.status !== 'pending')
+        return cb({
+          error_message: 'You can only cancel game that is in pending state',
+        });
+
+      await prisma.game.update({
+        where: { id: gameId },
+        data: { status: 'canceled' },
+      });
+
+      io.to(gameId.toString()).emit('gameCanceled');
     } catch (error) {
       cb({ error_message: 'Server error' });
     }
