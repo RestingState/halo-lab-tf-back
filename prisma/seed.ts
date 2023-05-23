@@ -24,6 +24,23 @@ const boards: {
       { x: 2, y: 6 },
     ],
   },
+  {
+    matrix: [
+      ['p', 'w', 'p', 'p', 'p', 'p', 'p', 'p'],
+      ['p', 'p', 'p', 'p', 'w', 'p', 'p', 'p'],
+      ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'w'],
+      ['p', 'p', 'w', 'w', 'p', 'w', 'p', 'w'],
+      ['p', 'p', 'p', 'w', 'w', 'p', 'p', 'p'],
+      ['p', 'w', 'p', 'p', 'p', 'p', 'w', 'p'],
+      ['p', 'w', 'p', 'p', 'p', 'p', 'w', 'p'],
+      ['p', 'p', 'p', 'w', 'p', 'w', 'p', 'p'],
+    ],
+    exitCell: { x: 7, y: 4 },
+    positionsSuitableForUserStart: [
+      { x: 0, y: 3 },
+      { x: 0, y: 4 },
+    ],
+  },
 ];
 
 async function main() {

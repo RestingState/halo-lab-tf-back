@@ -28,6 +28,7 @@ export default function gameHandler(io: Server, socket: Socket) {
       io.emit('gameCreated', game);
       cb({ id: game.id });
     } catch (error) {
+      console.log(error);
       cb({ error_message: 'Server error' });
     }
   });
