@@ -1,3 +1,4 @@
+import { ChatMessageType } from '@prisma/client';
 import prisma from '../lib/prisma';
 
 class ChatService {
@@ -7,18 +8,28 @@ class ChatService {
 
   async createMessage({
     text,
-    chatId,
+    gameId,
     userId,
+    type,
   }: {
     text: string;
-    chatId: number;
+    gameId: number;
     userId: number;
+    type: ChatMessageType;
   }) {
     return prisma.chatMessage.create({
       data: {
         text,
-        chat: { connect: { id: chatId } },
+        chat: { connect: { gameId } },
         user: { connect: { id: userId } },
+        type,
+      },
+      select: {
+        id: true,
+        text: true,
+        user: { select: { id: true, username: true } },
+        type: true,
+        createdAt: true,
       },
     });
   }

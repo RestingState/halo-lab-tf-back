@@ -114,11 +114,17 @@ model Chat {
 }
 
 model ChatMessage {
-  id        Int      @id @default(autoincrement())
+  id        Int             @id @default(autoincrement())
   text      String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User            @relation(fields: [userId], references: [id])
   userId    Int
-  chat      Chat     @relation(fields: [chatId], references: [id])
+  chat      Chat            @relation(fields: [chatId], references: [id])
   chatId    Int
-  createdAt DateTime @default(now())
+  type      ChatMessageType
+  createdAt DateTime        @default(now())
+}
+
+enum ChatMessageType {
+  command
+  message
 }

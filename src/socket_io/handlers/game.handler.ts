@@ -4,6 +4,7 @@ import boardService from '../../services/board.service';
 import gameService from '../../services/game.service';
 import { Server, Socket } from '../socket.type';
 import userService from '../../services/user.service';
+import chatService from '../../services/chat.service';
 
 export default function gameHandler(io: Server, socket: Socket) {
   socket.on('createGame', async cb => {
@@ -237,10 +238,18 @@ export default function gameHandler(io: Server, socket: Socket) {
         await gameService.finishGame({ winnerId: userId, gameId });
 
         io.to(gameId.toString()).emit('gameFinished');
-        return;
+      } else {
+        io.to(gameId.toString()).emit('turnChange');
       }
 
-      io.to(gameId.toString()).emit('turnChange');
+      const message = await chatService.createMessage({
+        text: direction,
+        gameId,
+        userId,
+        type: 'command',
+      });
+
+      socket.emit('messageReceived', message);
     } catch (error) {
       cb({ error_message: 'Server error' });
     }
@@ -293,18 +302,11 @@ export default function gameHandler(io: Server, socket: Socket) {
       if (!gameExists)
         return cb({ error_message: "Game with such gameId doesn't exists" });
 
-      const message = await prisma.chatMessage.create({
-        data: {
-          text,
-          chat: { connect: { gameId } },
-          user: { connect: { id: userId } },
-        },
-        select: {
-          id: true,
-          text: true,
-          user: { select: { id: true, username: true } },
-          createdAt: true,
-        },
+      const message = await chatService.createMessage({
+        text,
+        gameId,
+        userId,
+        type: 'message',
       });
 
       io.to(gameId.toString()).emit('messageReceived', message);

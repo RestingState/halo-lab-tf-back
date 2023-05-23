@@ -132,6 +132,7 @@ class GameController {
           id: true,
           text: true,
           user: { select: { id: true, username: true } },
+          type: true,
           createdAt: true,
         },
         orderBy: { createdAt: 'asc' },
