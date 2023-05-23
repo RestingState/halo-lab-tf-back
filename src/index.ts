@@ -28,15 +28,6 @@ const io = new Server(server, {
 
 io.use((socket, next) => {
   try {
-    // TODO: remove
-    const headerToken = socket.handshake.headers.token;
-    if (headerToken) {
-      const payload = verifyJwtToken(headerToken as string);
-      socket.data.userId = payload.user.id;
-      next();
-      return;
-    }
-
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error('Unauthorized'));
 
