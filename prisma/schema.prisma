@@ -127,4 +127,5 @@ model ChatMessage {
 enum ChatMessageType {
   command
   message
+  info
 }

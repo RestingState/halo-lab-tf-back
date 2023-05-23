@@ -232,17 +232,6 @@ export default function gameHandler(io: Server, socket: Socket) {
       });
       if (!game) throw new Error('Game was not found');
 
-      if (
-        nextTurn.playerX === game.board.exitX &&
-        nextTurn.playerY === game.board.exitY
-      ) {
-        await gameService.finishGame({ winnerId: userId, gameId });
-
-        io.to(gameId.toString()).emit('gameFinished');
-      } else {
-        io.to(gameId.toString()).emit('turnChange');
-      }
-
       const message = await chatService.createMessage({
         text: direction,
         gameId,
@@ -251,6 +240,15 @@ export default function gameHandler(io: Server, socket: Socket) {
       });
 
       socket.emit('messageReceived', message);
+
+      if (
+        nextTurn.playerX === game.board.exitX &&
+        nextTurn.playerY === game.board.exitY
+      ) {
+        await finishGame(io, { userId, gameId });
+      } else {
+        io.to(gameId.toString()).emit('turnChange');
+      }
     } catch (error) {
       cb({ error_message: 'Server error' });
     }
@@ -278,8 +276,7 @@ export default function gameHandler(io: Server, socket: Socket) {
       });
       if (!winner) throw new Error('Winner is not found');
 
-      await gameService.finishGame({ winnerId: winner.id, gameId });
-      io.to(gameId.toString()).emit('gameFinished');
+      await finishGame(io, { userId: winner.id, gameId });
     } catch (error) {
       cb({ error_message: 'Server error' });
     }
@@ -315,4 +312,26 @@ export default function gameHandler(io: Server, socket: Socket) {
       cb({ error_message: 'Server error' });
     }
   });
+}
+
+async function finishGame(
+  io: Server,
+  { userId, gameId }: { userId: number; gameId: number }
+) {
+  await gameService.finishGame({ winnerId: userId, gameId });
+  io.to(gameId.toString()).emit('gameFinished');
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId },
+    select: { username: true },
+  });
+  if (!user) throw new Error('User was not found');
+
+  const message = await chatService.createMessage({
+    text: `Player ${user.username} has won!`,
+    gameId,
+    userId,
+    type: 'info',
+  });
+  io.to(gameId.toString()).emit('messageReceived', message);
 }
